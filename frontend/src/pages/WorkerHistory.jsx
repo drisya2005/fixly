@@ -190,6 +190,15 @@ function WorkerHistory({ user, onLogout }) {
                               Complete
                             </button>
                           )}
+                          {(appointment.status === 'Confirmed' || appointment.status === 'InProgress') && (
+                            <button
+                              className="btn btn-primary"
+                              style={{ padding: '6px 12px', fontSize: '12px' }}
+                              onClick={() => navigate(`/view-user-location?user_id=${appointment.user_id}&user_name=${appointment.user_name}`)}
+                            >
+                              View Location
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

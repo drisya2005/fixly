@@ -12,6 +12,7 @@ import BookAppointment from './pages/BookAppointment'
 import Complaints from './pages/Complaints'
 import WorkerTracking from './pages/WorkerTracking'
 import UserTrackingView from './pages/UserTrackingView'
+import UserLocationView from './pages/UserLocationView'
 import WorkerReviews from './pages/WorkerReviews'
 
 function App() {
@@ -152,6 +153,16 @@ function App() {
           element={
             user && userType === 'user' ? (
               <UserTrackingView user={user} onLogout={handleLogout} />
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+        <Route
+          path="/view-user-location"
+          element={
+            user && userType === 'worker' ? (
+              <UserLocationView user={user} onLogout={handleLogout} />
             ) : (
               <Navigate to="/login" />
             )

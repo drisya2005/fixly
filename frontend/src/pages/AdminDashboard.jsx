@@ -511,6 +511,7 @@ function AdminDashboard({ user, onLogout }) {
                     <tr>
                       <th>ID</th>
                       <th>Name</th>
+                      <th>Phone</th>
                       <th>Service</th>
                       <th>Location</th>
                       <th>Status</th>
@@ -524,6 +525,7 @@ function AdminDashboard({ user, onLogout }) {
                       <tr key={worker.id}>
                         <td>{worker.id}</td>
                         <td><strong>{worker.name}</strong></td>
+                        <td><a href={`tel:${worker.phone}`} style={{ color: '#667eea', textDecoration: 'none' }}>{worker.phone}</a></td>
                         <td>{worker.service_type}</td>
                         <td>{worker.area || 'N/A'}, {worker.pincode || 'N/A'}</td>
                         <td>{worker.status}</td>

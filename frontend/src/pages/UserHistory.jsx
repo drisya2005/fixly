@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { bookingAPI } from '../api'
+import { bookingAPI, userLocationAPI } from '../api'
 import ReviewForm from './ReviewForm'
 
 function UserHistory({ user, onLogout }) {
@@ -12,6 +12,10 @@ function UserHistory({ user, onLogout }) {
   const [selectedBooking, setSelectedBooking] = useState(null)
 
   const [reviewModal, setReviewModal] = useState(null) // booking being reviewed
+
+  // Location sharing state
+  const [sharingLocation, setSharingLocation] = useState(new Set()) // Set of booking IDs being shared
+  const locationIntervalsRef = useRef(new Map()) // Map of bookingId -> intervalId
 
   useEffect(() => {
     fetchBookings()
@@ -58,6 +62,67 @@ function UserHistory({ user, onLogout }) {
   const openReviewModal = (booking) => setReviewModal(booking)
 
   const closeReviewModal = () => setReviewModal(null)
+
+  const startSharingLocation = (bookingId) => {
+    if (!navigator.geolocation) {
+      setError('Geolocation is not supported by your browser.')
+      return
+    }
+
+    // Request GPS permission and start sending location
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords
+
+        // Send location immediately
+        await userLocationAPI.updateLocation(user.id, latitude, longitude)
+
+        // Mark as sharing
+        setSharingLocation(prev => new Set([...prev, bookingId]))
+
+        // Set up interval to send every 10 seconds
+        const intervalId = setInterval(async () => {
+          navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+              const { latitude: lat, longitude: lon } = pos.coords
+              await userLocationAPI.updateLocation(user.id, lat, lon)
+            },
+            () => {} // silently ignore if location unavailable
+          )
+        }, 10000)
+
+        // Store interval ID for this booking
+        locationIntervalsRef.current.set(bookingId, intervalId)
+        setMessage('Location sharing started!')
+        setTimeout(() => setMessage(''), 3000)
+      },
+      (error) => {
+        setError(`Location access denied: ${error.message}`)
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    )
+  }
+
+  const stopSharingLocation = async (bookingId) => {
+    // Clear interval
+    const intervalId = locationIntervalsRef.current.get(bookingId)
+    if (intervalId) {
+      clearInterval(intervalId)
+      locationIntervalsRef.current.delete(bookingId)
+    }
+
+    // Remove from sharing set
+    setSharingLocation(prev => {
+      const updated = new Set(prev)
+      updated.delete(bookingId)
+      return updated
+    })
+
+    // Call API to stop sharing
+    await userLocationAPI.stopSharing(user.id)
+    setMessage('Location sharing stopped!')
+    setTimeout(() => setMessage(''), 3000)
+  }
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -193,13 +258,26 @@ function UserHistory({ user, onLogout }) {
                             </span>
                           )}
                           {(booking.status === 'Confirmed' || booking.status === 'InProgress') && (
-                            <button
-                              className="btn btn-primary"
-                              style={{ padding: '6px 12px', fontSize: '12px' }}
-                              onClick={() => navigate(`/track-worker?worker_id=${booking.worker_id}&worker_name=${booking.worker_name}`)}
-                            >
-                              Track Worker
-                            </button>
+                            <>
+                              <button
+                                className="btn btn-primary"
+                                style={{ padding: '6px 12px', fontSize: '12px' }}
+                                onClick={() => navigate(`/track-worker?worker_id=${booking.worker_id}&worker_name=${booking.worker_name}`)}
+                              >
+                                Track Worker
+                              </button>
+                              <button
+                                className={sharingLocation.has(booking.id) ? 'btn btn-danger' : 'btn btn-success'}
+                                style={{ padding: '6px 12px', fontSize: '12px' }}
+                                onClick={() =>
+                                  sharingLocation.has(booking.id)
+                                    ? stopSharingLocation(booking.id)
+                                    : startSharingLocation(booking.id)
+                                }
+                              >
+                                {sharingLocation.has(booking.id) ? 'Stop Sharing' : 'Share Location'}
+                              </button>
+                            </>
                           )}
                         </div>
                       </td>

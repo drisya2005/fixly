@@ -443,3 +443,27 @@ export const trackingAPI = {
     return apiRequest('/tracking/worker/' + workerId, { method: 'DELETE' });
   },
 };
+
+// ============================================
+// USER LOCATION SHARING APIs
+// ============================================
+
+export const userLocationAPI = {
+  // User sends their current GPS coordinates
+  updateLocation: async (userId, latitude, longitude) => {
+    return apiRequest('/tracking/user/update', {
+      method: 'POST',
+      body: JSON.stringify({ user_id: userId, latitude, longitude }),
+    });
+  },
+
+  // Worker fetches user's latest coordinates
+  getUserLocation: async (userId) => {
+    return apiRequest('/tracking/user/' + userId, { method: 'GET' });
+  },
+
+  // User stops sharing location
+  stopSharing: async (userId) => {
+    return apiRequest('/tracking/user/' + userId, { method: 'DELETE' });
+  },
+};
